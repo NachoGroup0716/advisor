@@ -22,7 +22,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class Step02_pollingAttach implements OnSignalStrategy {
 	private final String HEADER = "[POLLING_ATTACH]";
-	private String nasPath = "";
+	private String nasPath = "/nas/FILE/";
 	
 	@Override
 	public void onStart(OnSignalResult signalResult) throws Exception {
@@ -43,8 +43,8 @@ public class Step02_pollingAttach implements OnSignalStrategy {
 						.filter(map -> map.containsKey(DBFileConstants.ORGL_FILE_PATH_NAME) && map.containsKey(DBFileConstants.ORGL_FILE_NAME))
 						.forEach(map -> {
 							String pkId = map.containsKey(DBFileConstants.PK_ID) ? String.valueOf(map.get(DBFileConstants.PK_ID)) : null;
-							String orglFilePath = String.valueOf(DBFileConstants.ORGL_FILE_PATH_NAME);
-							String orglFileName = String.valueOf(DBFileConstants.ORGL_FILE_NAME);
+							String orglFilePath = String.valueOf(map.get(DBFileConstants.ORGL_FILE_PATH_NAME));
+							String orglFileName = String.valueOf(map.get(DBFileConstants.ORGL_FILE_NAME));
 							String tempFilePath = StringUtils.fillPalceholder(tempDirPath, dateTime, date, time, ifId, txId, pkId);
 							String message = null;
 							
@@ -79,7 +79,7 @@ public class Step02_pollingAttach implements OnSignalStrategy {
 								log.error("{} {}\r\n", HEADER, message , e);
 							}
 							
-							if(message != null) {
+							if(message == null) {
 								map.put(DBFileConstants.ESB_STATUS, DBFileConstants.SUCCESS);
 							} else {
 								map.put(DBFileConstants.ESB_STATUS, DBFileConstants.FAIL);
