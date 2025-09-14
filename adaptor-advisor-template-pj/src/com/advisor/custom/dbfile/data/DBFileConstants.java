@@ -14,6 +14,7 @@ public class DBFileConstants {
 	final public static String ATTACH = "ATTACH";
 	final public static String PK_COLUMNS = "PK_COLUMNS";
 	final public static String PK_ID = "PK_ID";
+	final public static String TX_ID = "TX_ID";
 	
 	final public static String ORGL_FILE_NAME = "ORGL_FILE_NAME";
 	final public static String ORGL_FILE_PATH_NAME = "ORGL_FILE_PATH_NAME";

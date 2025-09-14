@@ -51,6 +51,7 @@ public class Step01_PollingData implements OnSignalStrategy {
 				List<Map<String, Object>> selectList = this.sqlSession.selectList(selectId);
 				if(selectList != null && selectList.size() > 0) {
 					polledResultList.addAll(selectList);
+					signalResult.addProperty(DBFileConstants.ESB_STATUS, DBFileConstants.SUCCESS);
 				}
 			} catch(Exception e) {
 				log.error("{} Fail to update");
@@ -74,8 +75,8 @@ public class Step01_PollingData implements OnSignalStrategy {
 					.filter(path -> matcher.matches(baseDir.relativize(path)))
 					.forEach(path -> {
 						Map<String, Object> map = new HashMap<String, Object>();
-						map.put(DBFileConstants.ORGL_FILE_PATH_NAME, path.getParent().toAbsolutePath().toString());
-						map.put(DBFileConstants.ORGL_FILE_NAME, path.getFileName().toString());
+						map.put(DBFileConstants.ORGL_FILE_PATH_NAME, baseDir.toAbsolutePath().toString());
+						map.put(DBFileConstants.ORGL_FILE_NAME, baseDir.relativize(path).toString());
 						polledResultList.add(map);
 					});
 			} else {
@@ -86,17 +87,56 @@ public class Step01_PollingData implements OnSignalStrategy {
 				signalResult.addProperty(DBFileConstants.ATTACH, DBFileConstants.YES);
 				signalResult.addProperty(DBFileConstants.ESB_STATUS, DBFileConstants.SUCCESS);
 			}
-		} else if(type.equals(DBFileConstants.DBFILE)) {
-			String pkColumns = info.getPrivateKeyColumns();
+		} else if(type.equals(DBFileConstants.DBFILE) && polledResultList.size() > 0) {
+			String[] pkColumnArr = info.getPrivateKeyColumns().split(",");
 			String filePathColumn = info.getFilePathColumn();
 			String fileNameColumn = info.getFileNameColumn();
+			
+			polledResultList.forEach(map -> {
+				String pkId = StringUtils.getPkId(map, pkColumnArr);
+				if(pkId.length() > 0) {
+					Path filePath = getPath(map, filePathColumn, fileNameColumn);
+					if(filePath != null) {
+						map.put(DBFileConstants.PK_ID, pkId);
+						map.put(DBFileConstants.ORGL_FILE_PATH_NAME, filePath.toAbsolutePath().toString());
+						map.put(DBFileConstants.ORGL_FILE_NAME, filePath.getFileName().toString());
+					}
+				}
+			});
 		}
 		
 		if(polledResultList.size() > 0) {
 			signalResult.setCount(polledResultList.size());
 			signalResult.setPollDataObj(polledResultList);
+			signalResult.addProperty(DBFileConstants.TX_ID, txId);
 		} else {
 			signalResult.setCount(0);
 		}
+	}
+	
+	private Path getPath(Map<String, Object> map, String filePathColumn, String fileNameColumn) {
+		Path result = null;
+		if(StringUtils.isNotNullAndEmpty(filePathColumn) && StringUtils.isNotNullAndEmpty(fileNameColumn)) {
+			if(map.containsKey(filePathColumn) && map.containsKey(fileNameColumn)) {
+				String pathValue = StringUtils.isNotNullAndEmpty(map.get(filePathColumn)) ? String.valueOf(map.get(filePathColumn)) : null;
+				String nameValue = StringUtils.isNotNullAndEmpty(map.get(fileNameColumn)) ? String.valueOf(map.get(fileNameColumn)) : null;
+				if(pathValue != null && nameValue != null) {
+					result = Paths.get(pathValue).resolve(nameValue);
+				} else if(pathValue != null) {
+					result = Paths.get(pathValue);
+				} else if(nameValue != null) {
+					result = Paths.get(nameValue);
+				}
+			}
+		} else if(StringUtils.isNotNullAndEmpty(filePathColumn)) {
+			if(map.containsKey(filePathColumn) && StringUtils.isNotNullAndEmpty(map.get(filePathColumn))) {
+				result = Paths.get(String.valueOf(map.get(filePathColumn)));
+			}
+		} else if(StringUtils.isNotNullAndEmpty(fileNameColumn)) {
+			if(map.containsKey(fileNameColumn) && StringUtils.isNotNullAndEmpty(map.get(fileNameColumn))) {
+				result = Paths.get(String.valueOf(map.get(fileNameColumn)));
+			}
+		}
+		return result;
 	}
 }
