@@ -1,0 +1,19 @@
+# Compiled class files
+/bin/
+/build/
+
+# IDE settings and metadata
+.settings/
+.metadata/
+
+# Local configuration files that may vary from user to user
+*.launch
+.classpath.bak
+.project.bak
+
+# Temporary files
+*.tmp
+
+# System files
+.DS_Store
+Thumbs.db
